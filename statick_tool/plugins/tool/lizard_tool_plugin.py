@@ -1,8 +1,6 @@
 """Apply lizard tool and gather results."""
 import io
-import os
 import re
-import sys
 from contextlib import redirect_stdout
 from typing import List, Match, Optional, Pattern
 
@@ -25,49 +23,44 @@ class LizardToolPlugin(ToolPlugin):
         if not package.path:
             return []
 
-        try:
-            # The following is a modification of lizard.py's main() #
-            user_flags = (
-                [lizard.__file__] + [package.path] + self.get_user_flags(level)
-            )  # leading lizard file name is required
+        # The following is a modification of lizard.py's main().
+        user_flags = (
+            [lizard.__file__] + [package.path] + self.get_user_flags(level)
+        )  # leading lizard file name is required
 
-            # Make sure we log warnings
-            if "-w" not in user_flags:
-                user_flags += ["-w"]
+        # Make sure we log warnings.
+        if "-w" not in user_flags:
+            user_flags += ["-w"]
 
-            options = lizard.parse_args(user_flags)
-            printer = options.printer or lizard.print_result
-            schema = lizard.OutputScheme(options.extensions)
-            if schema.any_silent():
-                printer = lizard.silent_printer
-            schema.patch_for_extensions()
-            if options.input_file:
-                options.paths = lizard.auto_read(options.input_file).splitlines()
+        options = lizard.parse_args(user_flags)
+        printer = options.printer or lizard.print_result
+        schema = lizard.OutputScheme(options.extensions)
+        if schema.any_silent():
+            printer = lizard.silent_printer
+        schema.patch_for_extensions()
+        if options.input_file:
+            options.paths = lizard.auto_read(options.input_file).splitlines()
 
-            if options.output_file:
-                output_file = lizard.open_output_file(options.output_file)
+        if options.output_file:
+            output_file = lizard.open_output_file(options.output_file)
 
-            result = lizard.analyze(
-                options.paths,
-                options.exclude,
-                options.working_threads,
-                options.extensions,
-                options.languages,
-            )
-            lizard_output = io.StringIO()
-            with redirect_stdout(lizard_output):
-                printer(result, options, schema, lizard.AllResult)
-            output = lizard_output.getvalue()
-            lizard.print_extension_results(options.extensions)
-            list(result)
+        result = lizard.analyze(
+            options.paths,
+            options.exclude,
+            options.working_threads,
+            options.extensions,
+            options.languages,
+        )
+        lizard_output = io.StringIO()
+        with redirect_stdout(lizard_output):
+            printer(result, options, schema, lizard.AllResult)
+        output = lizard_output.getvalue()
+        lizard.print_extension_results(options.extensions)
+        list(result)
 
-            if options.output_file:
-                output_file.write(output)
-                output_file.close()
-
-        except OSError as ex:
-            print("Error occurred while running lizard! ({})".format(ex))
-            return None
+        if options.output_file:
+            output_file.write(output)
+            output_file.close()
 
         if self.plugin_context and self.plugin_context.args.show_tool_output:
             print("{}".format(output))
